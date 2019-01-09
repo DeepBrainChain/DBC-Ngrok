@@ -9,6 +9,8 @@ import (
 	"ngrok/util"
 	"os"
 	"runtime/debug"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -117,6 +119,25 @@ func Main() {
 	tunnelRegistry = NewTunnelRegistry(registryCacheSize, registryCacheFile)
 	controlRegistry = NewControlRegistry()
 
+	// jimmy: load url from db
+	kvs , err := readAllFromDB()
+	if err != nil {
+		log.Error("fail to load ports from db")
+	} else {
+		log.Info("load ports from db")
+		for k,v := range kvs {
+			log.Debug("load ports from db: (%s, %s)", k, v)
+			tunnelRegistry.SetCache(k, v)
+
+			//remove port id from port pool
+			parts := strings.Split(v, ":")
+			portPart := parts[len(parts)-1]
+			if port, err := strconv.Atoi(portPart); err == nil {
+				RemovePort(port)
+			}
+		}
+	}
+
 	// start listeners
 	listeners = make(map[string]*conn.Listener)
 
@@ -138,4 +159,7 @@ func Main() {
 
 	// ngrok clients
 	tunnelListener(opts.tunnelAddr, tlsConfig)
+
+	// jimmy: close db
+	//closeDB()
 }

@@ -82,8 +82,18 @@ func NewControl(ctlConn conn.Conn, authMsg *msg.Auth) {
 		ctlConn.Close()
 	}
 
+
+
+
 	// register the clientid
 	c.id = authMsg.ClientId
+
+	// jimmy: use authMsg.User/token as the client id if present
+	c.conn.Info("user token %s", authMsg.User)
+	if c.id == "" {
+		c.id = authMsg.User
+	}
+
 	if c.id == "" {
 		// it's a new session, assign an ID
 		if c.id, err = util.SecureRandId(16); err != nil {

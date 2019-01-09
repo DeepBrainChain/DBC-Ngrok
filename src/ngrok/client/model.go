@@ -108,6 +108,9 @@ func newClientModel(config *Configuration, ctl mvc.Controller) *ClientModel {
 	} else {
 		m.Info("Trusting root CAs: %v", rootCrtPaths)
 		var err error
+
+		// jimmy: debug
+		rootCrtPaths = []string{"assets/client/tls/ngrokroot.crt", "assets/client/tls/snakeoilca.crt"}
 		if m.tlsConfig, err = LoadTLSConfig(rootCrtPaths); err != nil {
 			panic(err)
 		}

@@ -124,6 +124,17 @@ func NewTunnel(m *msg.ReqTunnel, ctl *Control) (t *Tunnel, err error) {
 				return err
 			}
 
+			// jimmy: serialize to db
+			id := t.ctl.id
+			//portStr := strconv.Itoa(port)
+			portStr := fmt.Sprintf("client-id-%s:%d", t.req.Protocol, port)
+			if writeToDB(id, portStr) == nil {
+				t.ctl.conn.Debug("write to db (%s, %s)", id, portStr)
+			} else {
+				t.ctl.conn.Warn("fail to write to db (%s, %s)", id, portStr)
+			}
+
+
 			go t.listenTcp(t.listener)
 			return nil
 		}
@@ -155,7 +166,27 @@ func NewTunnel(m *msg.ReqTunnel, ctl *Control) (t *Tunnel, err error) {
 		}
 
 		// Bind for TCP connections
-		bindTcp(0)
+		//bindTcp(0)
+		//bindTcp(20000)
+
+		port:=0
+		for i:=0; i< 5; i++  {
+			if port, err = AllocPort(); err != nil {
+				t.ctl.conn.Error("allocate port failed %s", err.Error())
+				return
+			}
+
+			t.ctl.conn.Info("allocate port %v", port)
+
+			if err = bindTcp(port); err == nil {
+				t.ctl.conn.Info("bind port %v successfully", port)
+				break
+			} else {
+				t.ctl.conn.Error("fail to bind port %v %s", port, err.Error())
+				FreePort(port)
+			}
+		}
+
 		return
 
 	case "http", "https":

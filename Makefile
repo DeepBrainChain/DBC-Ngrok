@@ -1,5 +1,6 @@
 .PHONY: default server client deps fmt clean all release-all assets client-assets server-assets contributors
 export GOPATH:=$(shell pwd)
+export GOOS:=linux
 
 BUILDTAGS=debug
 default: all
@@ -19,7 +20,8 @@ client: deps
 assets: client-assets server-assets
 
 bin/go-bindata:
-	GOOS="" GOARCH="" go get github.com/jteeuwen/go-bindata/go-bindata
+	#GOOS="" GOARCH="" go get github.com/jteeuwen/go-bindata/go-bindata
+	GOOS="linux" go get github.com/jteeuwen/go-bindata/go-bindata
 
 client-assets: bin/go-bindata
 	bin/go-bindata -nomemcopy -pkg=assets -tags=$(BUILDTAGS) \

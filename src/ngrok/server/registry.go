@@ -91,6 +91,7 @@ func (r *TunnelRegistry) Register(url string, t *Tunnel) error {
 }
 
 func (r *TunnelRegistry) cacheKeys(t *Tunnel) (ip string, id string) {
+	// jimmy: ipKey will be deprecated due to NATS case
 	clientIp := t.ctl.conn.RemoteAddr().(*net.TCPAddr).IP.String()
 	clientId := t.ctl.id
 
@@ -100,30 +101,47 @@ func (r *TunnelRegistry) cacheKeys(t *Tunnel) (ip string, id string) {
 }
 
 func (r *TunnelRegistry) GetCachedRegistration(t *Tunnel) (url string) {
-	ipCacheKey, idCacheKey := r.cacheKeys(t)
+	// jimmy: skip ip affinity due to NATs
+	//ipCacheKey, idCacheKey := r.cacheKeys(t)
+	_, idCacheKey := r.cacheKeys(t)
 
 	// check cache for ID first, because we prefer that over IP which might
 	// not be specific to a user because of NATs
 	if v, ok := r.affinity.Get(idCacheKey); ok {
 		url = string(v.(cacheUrl))
 		t.Debug("Found registry affinity %s for %s", url, idCacheKey)
-	} else if v, ok := r.affinity.Get(ipCacheKey); ok {
-		url = string(v.(cacheUrl))
-		t.Debug("Found registry affinity %s for %s", url, ipCacheKey)
+	} else {
+		t.Debug("Not Found registry affinity %s for %s", url, idCacheKey)
 	}
+
+	// jimmy: skip ip affinity due to NATs
+	//} else if v, ok := r.affinity.Get(ipCacheKey); ok {
+	//	url = string(v.(cacheUrl))
+	//	t.Debug("Found registry affinity %s for %s", url, ipCacheKey)
+	//}
 	return
 }
 
 func (r *TunnelRegistry) RegisterAndCache(url string, t *Tunnel) (err error) {
 	if err = r.Register(url, t); err == nil {
 		// we successfully assigned a url, cache it
-		ipCacheKey, idCacheKey := r.cacheKeys(t)
-		r.affinity.Set(ipCacheKey, cacheUrl(url))
+		_, idCacheKey := r.cacheKeys(t)
+		//r.affinity.Set(ipCacheKey, cacheUrl(url))
 		r.affinity.Set(idCacheKey, cacheUrl(url))
 	}
 	return
 
 }
+
+func (r *TunnelRegistry) SetCache(id string, url string) (err error) {
+
+	idCacheKey := fmt.Sprintf("client-id-tcp:%s", id)
+
+	r.affinity.Set(idCacheKey, cacheUrl(url))
+
+	return
+}
+
 
 // Register a tunnel with the following process:
 // Consult the affinity cache to try to assign a previously used tunnel url if possible
