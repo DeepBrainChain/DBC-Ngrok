@@ -17,6 +17,11 @@ func readMsgShared(c conn.Conn) (buffer []byte, err error) {
 	}
 	c.Debug("Reading message with length: %d", sz)
 
+	// jimmy: robustness enhancement
+	if sz > 40960 || sz <= 0 {
+		return nil, errors.New("illegal msg length")
+	}
+
 	buffer = make([]byte, sz)
 	n, err := c.Read(buffer)
 	c.Debug("Read message %s", buffer)

@@ -1,15 +1,15 @@
-package server
+package ports_db
 
 import (
+	"errors"
 	"fmt"
 	"github.com/boltdb/bolt"
 	"log"
 	"testing"
-	"errors"
 )
 
 func TestDBWrite(t *testing.T) {
-	db, err := bolt.Open("ngrok_test.db", 0600, nil)
+	db, err := bolt.Open("./db/ngrok_test.db", 0600, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -30,7 +30,7 @@ func TestDBWrite(t *testing.T) {
 }
 
 func TestDBRead(t *testing.T) {
-	db, err := bolt.Open("ngrok_test.db", 0600, nil)
+	db, err := bolt.Open("./db/ngrok_test.db", 0600, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -44,13 +44,13 @@ func TestDBRead(t *testing.T) {
 
 		k := "dbcuser1"
 		v := b.Get([]byte(k))
-		fmt.Printf("(%s %s)\n", k,v)
+		fmt.Printf("(%s %s)\n", k, v)
 		return nil
 	})
 }
 
 func TestDBView(t *testing.T) {
-	db, err := bolt.Open("ngrok_test.db", 0600, nil)
+	db, err := bolt.Open("./db/ngrok_test.db", 0600, nil)
 	if err != nil {
 		log.Fatal(err)
 	}

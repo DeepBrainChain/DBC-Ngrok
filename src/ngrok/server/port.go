@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 )
+
 var portMode int
 var portPool []int
 
@@ -18,12 +19,12 @@ func init() {
 
 	portPool = make([]int, 0)
 
-	for i:=20000; i<20100; i++ {
-		portPool = append(portPool, i)
-	}
+	//for i:=20000; i<20100; i++ {
+	//	portPool = append(portPool, i)
+	//}
 }
 
-func AllocPort() (port int, err error){
+func AllocPort() (port int, err error) {
 
 	err = nil
 	if len(portPool) == 0 {
@@ -31,7 +32,7 @@ func AllocPort() (port int, err error){
 	}
 
 	port = portPool[0]
-	portPool=portPool[1:]
+	portPool = portPool[1:]
 
 	return
 }
@@ -40,7 +41,7 @@ func RemovePort(port int) error {
 	for i, v := range portPool {
 		if v == port {
 			//  port
-			portPool= append(portPool[:i], portPool[i+1:]...)
+			portPool = append(portPool[:i], portPool[i+1:]...)
 			return nil
 		}
 	}

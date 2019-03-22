@@ -16,7 +16,8 @@ func LogTo(target string, level_name string) {
 	case "none":
 		// no logging
 	default:
-		writer = log.NewFileLogWriter(target, true)
+		// jimmy: set max file rotate size as 100M, max file number as 10
+		writer = log.NewFileLogWriter(target, true).SetRotateSize(100*1024*1024).SetRotateMaxBackup(10)
 	}
 
 	if writer != nil {

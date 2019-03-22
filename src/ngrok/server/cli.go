@@ -2,7 +2,15 @@ package server
 
 import (
 	"flag"
+	"strconv"
+	"strings"
 )
+
+//jimmy add port range config
+type Range struct {
+	min int
+	max int
+}
 
 type Options struct {
 	httpAddr   string
@@ -13,6 +21,8 @@ type Options struct {
 	tlsKey     string
 	logto      string
 	loglevel   string
+	portRange  Range
+	restPort   string
 }
 
 func parseArgs() *Options {
@@ -24,7 +34,28 @@ func parseArgs() *Options {
 	tlsKey := flag.String("tlsKey", "", "Path to a TLS key file")
 	logto := flag.String("log", "stdout", "Write log messages to this file. 'stdout' and 'none' have special meanings")
 	loglevel := flag.String("log-level", "DEBUG", "The level of messages to log. One of: DEBUG, INFO, WARNING, ERROR")
+	portRange := flag.String("portRange", "20000-20100", "The tunnel port range")
+	restPort := flag.String("restPort", "8000", "The restful port")
 	flag.Parse()
+
+	port := strings.Split(*portRange, "-")
+	min, max := 20000, 20100
+	var err error
+
+	if len(port) == 2 {
+
+		if min, err = strconv.Atoi(port[0]); err != nil {
+			min = 20000
+		}
+
+		if max, err = strconv.Atoi(port[1]); err != nil {
+			max = min + 100
+		}
+
+		if min > max {
+			max = min + 100
+		}
+	}
 
 	return &Options{
 		httpAddr:   *httpAddr,
@@ -35,5 +66,7 @@ func parseArgs() *Options {
 		tlsKey:     *tlsKey,
 		logto:      *logto,
 		loglevel:   *loglevel,
+		portRange:  Range{min, max},
+		restPort:   *restPort,
 	}
 }

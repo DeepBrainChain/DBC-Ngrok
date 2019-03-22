@@ -6,6 +6,7 @@ import (
 	"ngrok/conn"
 	log "ngrok/log"
 	"ngrok/msg"
+	"ngrok/server/ports_db"
 	"ngrok/util"
 	"os"
 	"runtime/debug"
@@ -119,13 +120,19 @@ func Main() {
 	tunnelRegistry = NewTunnelRegistry(registryCacheSize, registryCacheFile)
 	controlRegistry = NewControlRegistry()
 
+	// jimmy: create port pool
+	for i := opts.portRange.min; i < opts.portRange.max; i++ {
+		portPool = append(portPool, i)
+	}
+	log.Info("port pool [%d,%d]", opts.portRange.min, opts.portRange.max)
+
 	// jimmy: load url from db
-	kvs , err := readAllFromDB()
+	kvs, err := ports_db.ReadAllFromDB()
 	if err != nil {
 		log.Error("fail to load ports from db")
 	} else {
 		log.Info("load ports from db")
-		for k,v := range kvs {
+		for k, v := range kvs {
 			log.Debug("load ports from db: (%s, %s)", k, v)
 			tunnelRegistry.SetCache(k, v)
 
@@ -138,6 +145,9 @@ func Main() {
 		}
 	}
 
+	// jimmy: restful
+	go startRestful(opts.restPort)
+
 	// start listeners
 	listeners = make(map[string]*conn.Listener)
 
@@ -147,7 +157,8 @@ func Main() {
 		panic(err)
 	}
 
-	// listen for http
+	// jimmy: http tunnel
+	//listen for http
 	if opts.httpAddr != "" {
 		listeners["http"] = startHttpListener(opts.httpAddr, nil)
 	}
@@ -159,6 +170,7 @@ func Main() {
 
 	// ngrok clients
 	tunnelListener(opts.tunnelAddr, tlsConfig)
+
 
 	// jimmy: close db
 	//closeDB()

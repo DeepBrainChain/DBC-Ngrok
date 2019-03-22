@@ -1,4 +1,4 @@
-package server
+package ports_db
 
 import (
 	"errors"
@@ -7,23 +7,25 @@ import (
 )
 
 var db *bolt.DB
+
 func init() {
 	var err error
-	db, err = bolt.Open("ngrok.db", 0600, nil)
+	db, err = bolt.Open("./db/ngrok_client_ports.db", 0600, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 	//defer db.Close()
 }
 
-func closeDB() {
+func CloseDB() {
 	if db != nil {
 		db.Close()
 	}
 }
 
 
-func writeToDB(k string, v string) error {
+// k: :dbcuser1",  v: "client-id-tcp:20001"
+func WriteToDB(k string, v string) error {
 
 	if db == nil {
 		return errors.New("db is nil")
@@ -39,12 +41,12 @@ func writeToDB(k string, v string) error {
 	})
 }
 
-func readFromDB(k string) (v string, err error) {
+// k: token
+func ReadFromDB(k string) (v string, err error) {
 
 	if db == nil {
 		return "", errors.New("db is nil")
 	}
-
 
 	err = db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("ports"))
@@ -60,8 +62,23 @@ func readFromDB(k string) (v string, err error) {
 	return
 }
 
+// k: token
+func DeleteFromDB(k string) (err error) {
+	if db == nil {
+	return errors.New("db is nil")
+	}
 
-func readAllFromDB() (kvs map[string]string, err error) {
+	return db.Update(func(tx *bolt.Tx) error {
+		b, err := tx.CreateBucketIfNotExists([]byte("ports"))
+		if err != nil {
+			return err
+		}
+
+		return b.Delete([]byte(k))
+	})
+}
+
+func ReadAllFromDB() (kvs map[string]string, err error) {
 
 	if db == nil {
 		return nil, errors.New("db is nil")
@@ -87,4 +104,3 @@ func readAllFromDB() (kvs map[string]string, err error) {
 
 	return
 }
-

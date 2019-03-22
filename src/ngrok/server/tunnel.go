@@ -8,6 +8,7 @@ import (
 	"ngrok/conn"
 	"ngrok/log"
 	"ngrok/msg"
+	"ngrok/server/ports_db"
 	"ngrok/util"
 	"os"
 	"strconv"
@@ -87,6 +88,7 @@ func registerVhost(t *Tunnel, protocol string, servingPort int) (err error) {
 	// Register for random URL
 	t.url, err = tunnelRegistry.RegisterRepeat(func() string {
 		return fmt.Sprintf("%s://%x.%s", protocol, rand.Int31(), vhost)
+		//return fmt.Sprintf("%s://%s/%x", protocol, vhost, rand.Int31())
 	}, t)
 
 	return
@@ -128,12 +130,11 @@ func NewTunnel(m *msg.ReqTunnel, ctl *Control) (t *Tunnel, err error) {
 			id := t.ctl.id
 			//portStr := strconv.Itoa(port)
 			portStr := fmt.Sprintf("client-id-%s:%d", t.req.Protocol, port)
-			if writeToDB(id, portStr) == nil {
+			if ports_db.WriteToDB(id, portStr) == nil {
 				t.ctl.conn.Debug("write to db (%s, %s)", id, portStr)
 			} else {
 				t.ctl.conn.Warn("fail to write to db (%s, %s)", id, portStr)
 			}
-
 
 			go t.listenTcp(t.listener)
 			return nil
@@ -141,8 +142,19 @@ func NewTunnel(m *msg.ReqTunnel, ctl *Control) (t *Tunnel, err error) {
 
 		// use the custom remote port you asked for
 		if t.req.RemotePort != 0 {
-			bindTcp(int(t.req.RemotePort))
-			return
+			// jimmy: need to remove from port pool
+			if err = RemovePort(int(t.req.RemotePort)); err == nil {
+				return
+			}
+
+			t.ctl.conn.Error("fail to allocate port %d per client request: ", t.req.RemotePort)
+
+			if err = bindTcp(int(t.req.RemotePort)); err == nil {
+				return
+			}
+
+			t.ctl.conn.Error("fail to bind Tcp port %s, try cache or auto allocate", err.Error())
+			// jimmy: do not return the bad port to port pool
 		}
 
 		// try to return to you the same port you had before
@@ -169,8 +181,8 @@ func NewTunnel(m *msg.ReqTunnel, ctl *Control) (t *Tunnel, err error) {
 		//bindTcp(0)
 		//bindTcp(20000)
 
-		port:=0
-		for i:=0; i< 5; i++  {
+		port := 0
+		for i := 0; i < 5; i++ {
 			if port, err = AllocPort(); err != nil {
 				t.ctl.conn.Error("allocate port failed %s", err.Error())
 				return

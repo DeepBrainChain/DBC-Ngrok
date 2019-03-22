@@ -82,9 +82,6 @@ func NewControl(ctlConn conn.Conn, authMsg *msg.Auth) {
 		ctlConn.Close()
 	}
 
-
-
-
 	// register the clientid
 	c.id = authMsg.ClientId
 
@@ -111,9 +108,15 @@ func NewControl(ctlConn conn.Conn, authMsg *msg.Auth) {
 		return
 	}
 
+	// jimmy: not allow preemptive control channel
 	// register the control
-	if replaced := controlRegistry.Add(c.id, c); replaced != nil {
-		replaced.shutdown.WaitComplete()
+	//if replaced := controlRegistry.Add(c.id, c); replaced != nil {
+	//	replaced.shutdown.WaitComplete()
+	//}
+
+	if _, err := controlRegistry.Add(c.id, c); err != nil {
+		failAuth(fmt.Errorf("client ID still in use"))
+		return
 	}
 
 	// start the writer first so that the following messages get sent

@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/gob"
+	"errors"
 	"fmt"
 	"net"
 	"ngrok/cache"
@@ -142,7 +143,6 @@ func (r *TunnelRegistry) SetCache(id string, url string) (err error) {
 	return
 }
 
-
 // Register a tunnel with the following process:
 // Consult the affinity cache to try to assign a previously used tunnel url if possible
 // Generate new urls repeatedly with the urlFn and register until one is available.
@@ -198,13 +198,20 @@ func (r *ControlRegistry) Get(clientId string) *Control {
 	return r.controls[clientId]
 }
 
-func (r *ControlRegistry) Add(clientId string, ctl *Control) (oldCtl *Control) {
+func (r *ControlRegistry) Add(clientId string, ctl *Control) (oldCtl *Control, err error) {
 	r.Lock()
 	defer r.Unlock()
 
+	// jimmy: clientID is unique for each user
+	//		  not allow two ngrok client share the same ID
+	//		  The first client will be served, and other clients with the duplicate ID will be rejected.
 	oldCtl = r.controls[clientId]
+	err = nil
 	if oldCtl != nil {
-		oldCtl.Replaced(ctl)
+		//oldCtl.Replaced(ctl)
+		r.Warn("Reject the control registry because id %s in use", clientId)
+		err = errors.New("id in use")
+		return
 	}
 
 	r.controls[clientId] = ctl
